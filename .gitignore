@@ -1,0 +1,12 @@
+# vscode
+.vscode*
+.VSCode*
+
+# obj
+*.o
+
+# temp
+temp*
+tmp*
+*.temp
+*.tmp
