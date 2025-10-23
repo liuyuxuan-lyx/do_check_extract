@@ -1,7 +1,10 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include "include/config.h"
+
 #include <stdbool.h>
+#include <stddef.h>
 
 #include <linux/types.h>
 #include <linux/bpf.h>
