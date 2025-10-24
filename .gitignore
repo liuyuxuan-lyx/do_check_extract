@@ -13,6 +13,7 @@ build
 # klee
 klee-last
 klee-out-*
+klee-output
 
 # temp
 temp*
