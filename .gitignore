@@ -10,3 +10,6 @@ temp*
 tmp*
 *.temp
 *.tmp
+
+# llvm
+*.bc
