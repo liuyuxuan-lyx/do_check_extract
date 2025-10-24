@@ -1,24 +1,37 @@
 SRC_DIR := src
 BUILD_DIR := build
 TARGET := $(BUILD_DIR)/target.bc
+REPLAY := $(BUILD_DIR)/replay.out
 
-CC := clang-13
-CFLAGS := -Wall -Wextra -g
+CLANG := clang-13
+GCC := gcc
 CPPFLAGS := -MMD -MP -Iinclude -I../klee-workdir/klee/include
+CFLAGS := -Wall -Wextra -g
+LDFLAGS := -L../klee-workdir/klee/build/lib
+LDLIBS := -lkleeRuntest
 
 SRCS := $(shell find $(SRC_DIR) -type f -name '*.c')
 BCS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.bc,$(SRCS))
+OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRCS))
 DEPS := $(BCS:.bc=.d)
 
-all: $(TARGET)
+all: $(TARGET) $(REPLAY)
 
 $(TARGET): $(BCS)
 	@mkdir -p $(dir $@)
-	llvm-link-13 $(BCS) -o $@
+	llvm-link-13 -o $@ $(BCS)
+
+$(REPLAY): $(OBJS)
+	@mkdir -p $(dir $@)
+	$(GCC) $(LDFLAGS) -o $(@) $(OBJS) $(LDLIBS)
 
 $(BCS): $(BUILD_DIR)/%.bc: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) -emit-llvm -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+	$(CLANG) $(CPPFLAGS) $(CFLAGS) -emit-llvm -c -o $@ $<
+
+$(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(GCC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 -include $(DEPS)
 

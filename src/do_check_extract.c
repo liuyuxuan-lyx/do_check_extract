@@ -90,14 +90,14 @@ static int set_map_elem_callback_state(struct bpf_verifier_env *env,
 	int err;
 
 	if (bpf_map_ptr_poisoned(insn_aux)) {
-		verbose(env, "tail_call abusing map_ptr\n");
+		// verbose(env, "tail_call abusing map_ptr\n");
 		return -EINVAL;
 	}
 
 	map = BPF_MAP_PTR(insn_aux->map_ptr_state);
 	if (!map->ops->map_set_for_each_callback_args ||
 	    !map->ops->map_for_each_callback) {
-		verbose(env, "callback function not allowed for map\n");
+		// verbose(env, "callback function not allowed for map\n");
 		return -ENOTSUPP;
 	}
 
@@ -146,8 +146,11 @@ int check_ctx_reg(struct bpf_verifier_env *env,
 	 */
 
 	if (reg->off) {
-		verbose(env, "dereference of modified ctx ptr R%d off=%d disallowed\n",
-			regno, reg->off);
+		// verbose(env, "dereference of modified ctx ptr R%d off=%d disallowed\n",
+		// 	regno, reg->off);
+		klee_print_expr("klee walk reach point check_ctx_reg(): check reg->off");
+		klee_print_expr("env=", env);
+		klee_print_expr("reg->off=", reg->off);
 		return -EACCES;
 	}
 
@@ -155,7 +158,7 @@ int check_ctx_reg(struct bpf_verifier_env *env,
 		char tn_buf[48];
 
 		tnum_strn(tn_buf, sizeof(tn_buf), reg->var_off);
-		verbose(env, "variable ctx access var_off=%s disallowed\n", tn_buf);
+		// verbose(env, "variable ctx access var_off=%s disallowed\n", tn_buf);
 		return -EACCES;
 	}
 
@@ -181,8 +184,8 @@ static int check_func_arg(struct bpf_verifier_env *env, u32 arg,
 
 	if (arg_type == ARG_ANYTHING) {
 		if (is_pointer_value(env, regno)) {
-			verbose(env, "R%d leaks addr into helper function\n",
-				regno);
+			// verbose(env, "R%d leaks addr into helper function\n",
+			// 	regno);
 			return -EACCES;
 		}
 		return 0;
@@ -190,7 +193,7 @@ static int check_func_arg(struct bpf_verifier_env *env, u32 arg,
 
 	if (type_is_pkt_pointer(type) &&
 	    !may_access_direct_pkt_data(env, meta, BPF_READ)) {
-		verbose(env, "helper access to the packet is not allowed\n");
+		// verbose(env, "helper access to the packet is not allowed\n");
 		return -EACCES;
 	}
 
@@ -220,9 +223,9 @@ static int check_func_arg(struct bpf_verifier_env *env, u32 arg,
 skip_type_check:
 	if (reg->ref_obj_id) {
 		if (meta->ref_obj_id) {
-			verbose(env, "verifier internal error: more than one arg with ref_obj_id R%d %u %u\n",
-				regno, reg->ref_obj_id,
-				meta->ref_obj_id);
+			// verbose(env, "verifier internal error: more than one arg with ref_obj_id R%d %u %u\n",
+			// 	regno, reg->ref_obj_id,
+			// 	meta->ref_obj_id);
 			return -EFAULT;
 		}
 		meta->ref_obj_id = reg->ref_obj_id;
@@ -245,9 +248,9 @@ skip_type_check:
 			 */
 			if (meta->map_ptr != reg->map_ptr ||
 			    meta->map_uid != reg->map_uid) {
-				verbose(env,
-					"timer pointer in R1 map_uid=%d doesn't match map pointer in R2 map_uid=%d\n",
-					meta->map_uid, reg->map_uid);
+				// verbose(env,
+				// 	"timer pointer in R1 map_uid=%d doesn't match map pointer in R2 map_uid=%d\n",
+				// 	meta->map_uid, reg->map_uid);
 				return -EINVAL;
 			}
 		}
@@ -264,7 +267,7 @@ skip_type_check:
 			 * we have to check map_key here. Otherwise it means
 			 * that kernel subsystem misconfigured verifier
 			 */
-			verbose(env, "invalid map_ptr to access map->key\n");
+			// verbose(env, "invalid map_ptr to access map->key\n");
 			return -EACCES;
 		}
 		err = check_helper_mem_access(env, regno,
@@ -280,7 +283,7 @@ skip_type_check:
 		 */
 		if (!meta->map_ptr) {
 			/* kernel subsystem misconfigured verifier */
-			verbose(env, "invalid map_ptr to access map->value\n");
+			// verbose(env, "invalid map_ptr to access map->value\n");
 			return -EACCES;
 		}
 		meta->raw_mode = (arg_type == ARG_PTR_TO_UNINIT_MAP_VALUE);
@@ -289,7 +292,7 @@ skip_type_check:
 					      meta);
 	} else if (arg_type == ARG_PTR_TO_PERCPU_BTF_ID) {
 		if (!reg->btf_id) {
-			verbose(env, "Helper has invalid btf_id in R%d\n", regno);
+			// verbose(env, "Helper has invalid btf_id in R%d\n", regno);
 			return -EACCES;
 		}
 		meta->ret_btf = reg->btf;
@@ -302,7 +305,7 @@ skip_type_check:
 			if (process_spin_lock(env, regno, false))
 				return -EACCES;
 		} else {
-			verbose(env, "verifier internal error\n");
+			// verbose(env, "verifier internal error\n");
 			return -EFAULT;
 		}
 	} else if (arg_type == ARG_PTR_TO_TIMER) {
@@ -340,8 +343,8 @@ skip_type_check:
 			meta = NULL;
 
 		if (reg->smin_value < 0) {
-			verbose(env, "R%d min value is negative, either use unsigned or 'var &= const'\n",
-				regno);
+			// verbose(env, "R%d min value is negative, either use unsigned or 'var &= const'\n",
+			// 	regno);
 			return -EACCES;
 		}
 
@@ -354,8 +357,8 @@ skip_type_check:
 		}
 
 		if (reg->umax_value >= BPF_MAX_VAR_SIZ) {
-			verbose(env, "R%d unbounded memory access, use 'var &= const' or 'if (var < const)'\n",
-				regno);
+			// verbose(env, "R%d unbounded memory access, use 'var &= const' or 'if (var < const)'\n",
+			// 	regno);
 			return -EACCES;
 		}
 		err = check_helper_mem_access(env, regno - 1,
@@ -365,8 +368,8 @@ skip_type_check:
 			err = mark_chain_precision(env, regno);
 	} else if (arg_type_is_alloc_size(arg_type)) {
 		if (!tnum_is_const(reg->var_off)) {
-			verbose(env, "R%d is not a known constant'\n",
-				regno);
+			// verbose(env, "R%d is not a known constant'\n",
+			// 	regno);
 			return -EACCES;
 		}
 		meta->mem_size = reg->var_off.value;
@@ -384,17 +387,17 @@ skip_type_check:
 		char *str_ptr;
 
 		if (!bpf_map_is_rdonly(map)) {
-			verbose(env, "R%d does not point to a readonly map'\n", regno);
+			// verbose(env, "R%d does not point to a readonly map'\n", regno);
 			return -EACCES;
 		}
 
 		if (!tnum_is_const(reg->var_off)) {
-			verbose(env, "R%d is not a constant address'\n", regno);
+			// verbose(env, "R%d is not a constant address'\n", regno);
 			return -EACCES;
 		}
 
 		if (!map->ops->map_direct_value_addr) {
-			verbose(env, "no direct value access support for this map type\n");
+			// verbose(env, "no direct value access support for this map type\n");
 			return -EACCES;
 		}
 
@@ -406,13 +409,13 @@ skip_type_check:
 		map_off = reg->off + reg->var_off.value;
 		err = map->ops->map_direct_value_addr(map, &map_addr, map_off);
 		if (err) {
-			verbose(env, "direct value access on string failed\n");
+			// verbose(env, "direct value access on string failed\n");
 			return err;
 		}
 
 		str_ptr = (char *)(long)(map_addr);
 		if (!strnchr(str_ptr + map_off, map->value_size - map_off, 0)) {
-			verbose(env, "string is not zero-terminated\n");
+			// verbose(env, "string is not zero-terminated\n");
 			return -EINVAL;
 		}
 	}
@@ -435,35 +438,35 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 	/* find function prototype */
 	func_id = insn->imm;
 	if (func_id < 0 || func_id >= __BPF_FUNC_MAX_ID) {
-		verbose(env, "invalid func %s#%d\n", func_id_name(func_id),
-			func_id);
+		// verbose(env, "invalid func %s#%d\n", func_id_name(func_id),
+		// 	func_id);
 		return -EINVAL;
 	}
 
 	if (env->ops->get_func_proto)
 		fn = env->ops->get_func_proto(func_id, env->prog);
 	if (!fn) {
-		verbose(env, "unknown func %s#%d\n", func_id_name(func_id),
-			func_id);
+		// verbose(env, "unknown func %s#%d\n", func_id_name(func_id),
+		// 	func_id);
 		return -EINVAL;
 	}
 
 	/* eBPF programs must be GPL compatible to use GPL-ed functions */
 	if (!env->prog->gpl_compatible && fn->gpl_only) {
-		verbose(env, "cannot call GPL-restricted function from non-GPL compatible program\n");
+		// verbose(env, "cannot call GPL-restricted function from non-GPL compatible program\n");
 		return -EINVAL;
 	}
 
 	if (fn->allowed && !fn->allowed(env->prog)) {
-		verbose(env, "helper call is not allowed in probe\n");
+		// verbose(env, "helper call is not allowed in probe\n");
 		return -EINVAL;
 	}
 
 	/* With LD_ABS/IND some JITs save/restore skb from r1. */
 	changes_data = bpf_helper_changes_pkt_data(fn->func);
 	if (changes_data && fn->arg1_type != ARG_PTR_TO_CTX) {
-		verbose(env, "kernel subsystem misconfigured func %s#%d: r1 != ctx\n",
-			func_id_name(func_id), func_id);
+		// verbose(env, "kernel subsystem misconfigured func %s#%d: r1 != ctx\n",
+		// 	func_id_name(func_id), func_id);
 		return -EINVAL;
 	}
 
@@ -472,8 +475,8 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 
 	err = check_func_proto(fn, func_id);
 	if (err) {
-		verbose(env, "kernel subsystem misconfigured func %s#%d\n",
-			func_id_name(func_id), func_id);
+		// verbose(env, "kernel subsystem misconfigured func %s#%d\n",
+		// 	func_id_name(func_id), func_id);
 		return err;
 	}
 
@@ -506,14 +509,14 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 	if (func_id == BPF_FUNC_tail_call) {
 		err = check_reference_leak(env);
 		if (err) {
-			verbose(env, "tail_call would lead to reference leak\n");
+			// verbose(env, "tail_call would lead to reference leak\n");
 			return err;
 		}
 	} else if (is_release_function(func_id)) {
 		err = release_reference(env, meta.ref_obj_id);
 		if (err) {
-			verbose(env, "func %s#%d reference has not been acquired before\n",
-				func_id_name(func_id), func_id);
+			// verbose(env, "func %s#%d reference has not been acquired before\n",
+			// 	func_id_name(func_id), func_id);
 			return err;
 		}
 	}
@@ -525,7 +528,7 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 	 */
 	if (func_id == BPF_FUNC_get_local_storage &&
 	    !register_is_null(&regs[BPF_REG_2])) {
-		verbose(env, "get_local_storage() doesn't support non-zero flags\n");
+		// verbose(env, "get_local_storage() doesn't support non-zero flags\n");
 		return -EINVAL;
 	}
 
@@ -574,8 +577,8 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 		 * to map element returned from bpf_map_lookup_elem()
 		 */
 		if (meta.map_ptr == NULL) {
-			verbose(env,
-				"kernel subsystem misconfigured verifier\n");
+			// verbose(env,
+			// 	"kernel subsystem misconfigured verifier\n");
 			return -EINVAL;
 		}
 		regs[BPF_REG_0].map_ptr = meta.map_ptr;
@@ -612,8 +615,8 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 			ret = btf_resolve_size(meta.ret_btf, t, &tsize);
 			if (IS_ERR(ret)) {
 				tname = btf_name_by_offset(meta.ret_btf, t->name_off);
-				verbose(env, "unable to resolve the size of type '%s': %ld\n",
-					tname, PTR_ERR(ret));
+				// verbose(env, "unable to resolve the size of type '%s': %ld\n",
+				// 	tname, PTR_ERR(ret));
 				return -EINVAL;
 			}
 			regs[BPF_REG_0].type = PTR_TO_MEM | ret_flag;
@@ -637,9 +640,9 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 		regs[BPF_REG_0].type = PTR_TO_BTF_ID | ret_flag;
 		ret_btf_id = *fn->ret_btf_id;
 		if (ret_btf_id == 0) {
-			verbose(env, "invalid return type %u of func %s#%d\n",
-				base_type(ret_type), func_id_name(func_id),
-				func_id);
+			// verbose(env, "invalid return type %u of func %s#%d\n",
+			// 	base_type(ret_type), func_id_name(func_id),
+			// 	func_id);
 			return -EINVAL;
 		}
 		/* current BPF helper definitions are only coming from
@@ -648,8 +651,8 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 		regs[BPF_REG_0].btf = btf_vmlinux;
 		regs[BPF_REG_0].btf_id = ret_btf_id;
 	} else {
-		verbose(env, "unknown return type %u of func %s#%d\n",
-			base_type(ret_type), func_id_name(func_id), func_id);
+		// verbose(env, "unknown return type %u of func %s#%d\n",
+		// 	base_type(ret_type), func_id_name(func_id), func_id);
 		return -EINVAL;
 	}
 
@@ -689,7 +692,7 @@ static int check_helper_call(struct bpf_verifier_env *env, struct bpf_insn *insn
 		err_str = "func %s#%d not supported without CONFIG_PERF_EVENTS\n";
 #endif
 		if (err) {
-			verbose(env, err_str, func_id_name(func_id), func_id);
+			// verbose(env, err_str, func_id_name(func_id), func_id);
 			return err;
 		}
 
@@ -727,8 +730,8 @@ int do_check(struct bpf_verifier_env *env)
 
 		env->prev_insn_idx = prev_insn_idx;
 		if (env->insn_idx >= insn_cnt) {
-			verbose(env, "invalid insn idx %d insn_cnt %d\n",
-				env->insn_idx, insn_cnt);
+			// verbose(env, "invalid insn idx %d insn_cnt %d\n",
+			// 	env->insn_idx, insn_cnt);
 			return -EFAULT;
 		}
 
@@ -736,28 +739,28 @@ int do_check(struct bpf_verifier_env *env)
 		class = BPF_CLASS(insn->code);
 
 		if (++env->insn_processed > BPF_COMPLEXITY_LIMIT_INSNS) {
-			verbose(env,
-				"BPF program is too large. Processed %d insn\n",
-				env->insn_processed);
+			// verbose(env,
+			// 	"BPF program is too large. Processed %d insn\n",
+			// 	env->insn_processed);
 			return -E2BIG;
 		}
 
-		err = is_state_visited(env, env->insn_idx);
-		if (err < 0)
-			return err;
-		if (err == 1) {
-			/* found equivalent state, can prune the search */
-			if (env->log.level & BPF_LOG_LEVEL) {
-				if (do_print_state)
-					verbose(env, "\nfrom %d to %d%s: safe\n",
-						env->prev_insn_idx, env->insn_idx,
-						env->cur_state->speculative ?
-						" (speculative execution)" : "");
-				else
-					verbose(env, "%d: safe\n", env->insn_idx);
-			}
-			goto process_bpf_exit;
-		}
+		// err = is_state_visited(env, env->insn_idx);
+		// if (err < 0)
+		// 	return err;
+		// if (err == 1) {
+		// 	/* found equivalent state, can prune the search */
+		// 	// if (env->log.level & BPF_LOG_LEVEL) {
+		// 	// 	if (do_print_state)
+		// 	// 		verbose(env, "\nfrom %d to %d%s: safe\n",
+		// 	// 			env->prev_insn_idx, env->insn_idx,
+		// 	// 			env->cur_state->speculative ?
+		// 	// 			" (speculative execution)" : "");
+		// 	// 	else
+		// 	// 		verbose(env, "%d: safe\n", env->insn_idx);
+		// 	// }
+		// 	goto process_bpf_exit;
+		// }
 
 		// if (signal_pending(current))
 		// 	return -EAGAIN;
@@ -765,18 +768,18 @@ int do_check(struct bpf_verifier_env *env)
 		if (need_resched())
 			cond_resched();
 
-		if (env->log.level & BPF_LOG_LEVEL2 ||
-		    (env->log.level & BPF_LOG_LEVEL && do_print_state)) {
-			if (env->log.level & BPF_LOG_LEVEL2)
-				verbose(env, "%d:", env->insn_idx);
-			else
-				verbose(env, "\nfrom %d to %d%s:",
-					env->prev_insn_idx, env->insn_idx,
-					env->cur_state->speculative ?
-					" (speculative execution)" : "");
-			print_verifier_state(env, state->frame[state->curframe]);
-			do_print_state = false;
-		}
+		// if (env->log.level & BPF_LOG_LEVEL2 ||
+		//     (env->log.level & BPF_LOG_LEVEL && do_print_state)) {
+		// 	if (env->log.level & BPF_LOG_LEVEL2)
+		// 		verbose(env, "%d:", env->insn_idx);
+		// 	else
+		// 		verbose(env, "\nfrom %d to %d%s:",
+		// 			env->prev_insn_idx, env->insn_idx,
+		// 			env->cur_state->speculative ?
+		// 			" (speculative execution)" : "");
+		// 	print_verifier_state(env, state->frame[state->curframe]);
+		// 	do_print_state = false;
+		// }
 
 		// if (env->log.level & BPF_LOG_LEVEL) {
 		// 	const struct bpf_insn_cbs cbs = {
@@ -801,126 +804,127 @@ int do_check(struct bpf_verifier_env *env)
 		sanitize_mark_insn_seen(env);
 		prev_insn_idx = env->insn_idx;
 
-		if (class == BPF_ALU || class == BPF_ALU64) {
-			err = check_alu_op(env, insn);
-			if (err)
-				return err;
+		// if (class == BPF_ALU || class == BPF_ALU64) {
+		// 	err = check_alu_op(env, insn);
+		// 	if (err)
+		// 		return err;
 
-		} else if (class == BPF_LDX) {
-			enum bpf_reg_type *prev_src_type, src_reg_type;
+		// } else if (class == BPF_LDX) {
+		// 	enum bpf_reg_type *prev_src_type, src_reg_type;
 
-			/* check for reserved fields is already done */
+		// 	/* check for reserved fields is already done */
 
-			/* check src operand */
-			err = check_reg_arg(env, insn->src_reg, SRC_OP);
-			if (err)
-				return err;
+		// 	/* check src operand */
+		// 	err = check_reg_arg(env, insn->src_reg, SRC_OP);
+		// 	if (err)
+		// 		return err;
 
-			err = check_reg_arg(env, insn->dst_reg, DST_OP_NO_MARK);
-			if (err)
-				return err;
+		// 	err = check_reg_arg(env, insn->dst_reg, DST_OP_NO_MARK);
+		// 	if (err)
+		// 		return err;
 
-			src_reg_type = regs[insn->src_reg].type;
+		// 	src_reg_type = regs[insn->src_reg].type;
 
-			/* check that memory (src_reg + off) is readable,
-			 * the state of dst_reg will be updated by this func
-			 */
-			err = check_mem_access(env, env->insn_idx, insn->src_reg,
-					       insn->off, BPF_SIZE(insn->code),
-					       BPF_READ, insn->dst_reg, false);
-			if (err)
-				return err;
+		// 	/* check that memory (src_reg + off) is readable,
+		// 	 * the state of dst_reg will be updated by this func
+		// 	 */
+		// 	err = check_mem_access(env, env->insn_idx, insn->src_reg,
+		// 			       insn->off, BPF_SIZE(insn->code),
+		// 			       BPF_READ, insn->dst_reg, false);
+		// 	if (err)
+		// 		return err;
 
-			prev_src_type = &env->insn_aux_data[env->insn_idx].ptr_type;
+		// 	prev_src_type = &env->insn_aux_data[env->insn_idx].ptr_type;
 
-			if (*prev_src_type == NOT_INIT) {
-				/* saw a valid insn
-				 * dst_reg = *(u32 *)(src_reg + off)
-				 * save type to validate intersecting paths
-				 */
-				*prev_src_type = src_reg_type;
+		// 	if (*prev_src_type == NOT_INIT) {
+		// 		/* saw a valid insn
+		// 		 * dst_reg = *(u32 *)(src_reg + off)
+		// 		 * save type to validate intersecting paths
+		// 		 */
+		// 		*prev_src_type = src_reg_type;
 
-			} else if (reg_type_mismatch(src_reg_type, *prev_src_type)) {
-				/* ABuser program is trying to use the same insn
-				 * dst_reg = *(u32*) (src_reg + off)
-				 * with different pointer types:
-				 * src_reg == ctx in one branch and
-				 * src_reg == stack|map in some other branch.
-				 * Reject it.
-				 */
-				verbose(env, "same insn cannot be used with different pointers\n");
-				return -EINVAL;
-			}
+		// 	} else if (reg_type_mismatch(src_reg_type, *prev_src_type)) {
+		// 		/* ABuser program is trying to use the same insn
+		// 		 * dst_reg = *(u32*) (src_reg + off)
+		// 		 * with different pointer types:
+		// 		 * src_reg == ctx in one branch and
+		// 		 * src_reg == stack|map in some other branch.
+		// 		 * Reject it.
+		// 		 */
+		// 		// verbose(env, "same insn cannot be used with different pointers\n");
+		// 		return -EINVAL;
+		// 	}
 
-		} else if (class == BPF_STX) {
-			enum bpf_reg_type *prev_dst_type, dst_reg_type;
+		// } else if (class == BPF_STX) {
+		// 	enum bpf_reg_type *prev_dst_type, dst_reg_type;
 
-			if (BPF_MODE(insn->code) == BPF_ATOMIC) {
-				err = check_atomic(env, env->insn_idx, insn);
-				if (err)
-					return err;
-				env->insn_idx++;
-				continue;
-			}
+		// 	if (BPF_MODE(insn->code) == BPF_ATOMIC) {
+		// 		err = check_atomic(env, env->insn_idx, insn);
+		// 		if (err)
+		// 			return err;
+		// 		env->insn_idx++;
+		// 		continue;
+		// 	}
 
-			if (BPF_MODE(insn->code) != BPF_MEM || insn->imm != 0) {
-				verbose(env, "BPF_STX uses reserved fields\n");
-				return -EINVAL;
-			}
+		// 	if (BPF_MODE(insn->code) != BPF_MEM || insn->imm != 0) {
+		// 		// verbose(env, "BPF_STX uses reserved fields\n");
+		// 		return -EINVAL;
+		// 	}
 
-			/* check src1 operand */
-			err = check_reg_arg(env, insn->src_reg, SRC_OP);
-			if (err)
-				return err;
-			/* check src2 operand */
-			err = check_reg_arg(env, insn->dst_reg, SRC_OP);
-			if (err)
-				return err;
+		// 	/* check src1 operand */
+		// 	err = check_reg_arg(env, insn->src_reg, SRC_OP);
+		// 	if (err)
+		// 		return err;
+		// 	/* check src2 operand */
+		// 	err = check_reg_arg(env, insn->dst_reg, SRC_OP);
+		// 	if (err)
+		// 		return err;
 
-			dst_reg_type = regs[insn->dst_reg].type;
+		// 	dst_reg_type = regs[insn->dst_reg].type;
 
-			/* check that memory (dst_reg + off) is writeable */
-			err = check_mem_access(env, env->insn_idx, insn->dst_reg,
-					       insn->off, BPF_SIZE(insn->code),
-					       BPF_WRITE, insn->src_reg, false);
-			if (err)
-				return err;
+		// 	/* check that memory (dst_reg + off) is writeable */
+		// 	err = check_mem_access(env, env->insn_idx, insn->dst_reg,
+		// 			       insn->off, BPF_SIZE(insn->code),
+		// 			       BPF_WRITE, insn->src_reg, false);
+		// 	if (err)
+		// 		return err;
 
-			prev_dst_type = &env->insn_aux_data[env->insn_idx].ptr_type;
+		// 	prev_dst_type = &env->insn_aux_data[env->insn_idx].ptr_type;
 
-			if (*prev_dst_type == NOT_INIT) {
-				*prev_dst_type = dst_reg_type;
-			} else if (reg_type_mismatch(dst_reg_type, *prev_dst_type)) {
-				verbose(env, "same insn cannot be used with different pointers\n");
-				return -EINVAL;
-			}
+		// 	if (*prev_dst_type == NOT_INIT) {
+		// 		*prev_dst_type = dst_reg_type;
+		// 	} else if (reg_type_mismatch(dst_reg_type, *prev_dst_type)) {
+		// 		// verbose(env, "same insn cannot be used with different pointers\n");
+		// 		return -EINVAL;
+		// 	}
 
-		} else if (class == BPF_ST) {
-			if (BPF_MODE(insn->code) != BPF_MEM ||
-			    insn->src_reg != BPF_REG_0) {
-				verbose(env, "BPF_ST uses reserved fields\n");
-				return -EINVAL;
-			}
-			/* check src operand */
-			err = check_reg_arg(env, insn->dst_reg, SRC_OP);
-			if (err)
-				return err;
+		// } else if (class == BPF_ST) {
+		// 	if (BPF_MODE(insn->code) != BPF_MEM ||
+		// 	    insn->src_reg != BPF_REG_0) {
+		// 		// verbose(env, "BPF_ST uses reserved fields\n");
+		// 		return -EINVAL;
+		// 	}
+		// 	/* check src operand */
+		// 	err = check_reg_arg(env, insn->dst_reg, SRC_OP);
+		// 	if (err)
+		// 		return err;
 
-			if (is_ctx_reg(env, insn->dst_reg)) {
-				verbose(env, "BPF_ST stores into R%d %s is not allowed\n",
-					insn->dst_reg,
-					reg_type_str(env, reg_state(env, insn->dst_reg)->type));
-				return -EACCES;
-			}
+		// 	if (is_ctx_reg(env, insn->dst_reg)) {
+		// 		// verbose(env, "BPF_ST stores into R%d %s is not allowed\n",
+		// 		// 	insn->dst_reg,
+		// 		// 	reg_type_str(env, reg_state(env, insn->dst_reg)->type));
+		// 		return -EACCES;
+		// 	}
 
-			/* check that memory (dst_reg + off) is writeable */
-			err = check_mem_access(env, env->insn_idx, insn->dst_reg,
-					       insn->off, BPF_SIZE(insn->code),
-					       BPF_WRITE, -1, false);
-			if (err)
-				return err;
+		// 	/* check that memory (dst_reg + off) is writeable */
+		// 	err = check_mem_access(env, env->insn_idx, insn->dst_reg,
+		// 			       insn->off, BPF_SIZE(insn->code),
+		// 			       BPF_WRITE, -1, false);
+		// 	if (err)
+		// 		return err;
 
-		} else if (class == BPF_JMP || class == BPF_JMP32) {
+		// } else if (class == BPF_JMP || class == BPF_JMP32) {
+		if (class == BPF_JMP || class == BPF_JMP32) {
 			u8 opcode = BPF_OP(insn->code);
 
 			env->jmps_processed++;
@@ -932,14 +936,14 @@ int do_check(struct bpf_verifier_env *env)
 				     insn->src_reg != BPF_PSEUDO_KFUNC_CALL) ||
 				    insn->dst_reg != BPF_REG_0 ||
 				    class == BPF_JMP32) {
-					verbose(env, "BPF_CALL uses reserved fields\n");
+					// verbose(env, "BPF_CALL uses reserved fields\n");
 					return -EINVAL;
 				}
 
 				if (env->cur_state->active_spin_lock &&
 				    (insn->src_reg == BPF_PSEUDO_CALL ||
 				     insn->imm != BPF_FUNC_spin_unlock)) {
-					verbose(env, "function calls are not allowed while holding a lock\n");
+					// verbose(env, "function calls are not allowed while holding a lock\n");
 					return -EINVAL;
 				}
 				if (insn->src_reg == BPF_PSEUDO_CALL)
@@ -956,7 +960,7 @@ int do_check(struct bpf_verifier_env *env)
 				    insn->src_reg != BPF_REG_0 ||
 				    insn->dst_reg != BPF_REG_0 ||
 				    class == BPF_JMP32) {
-					verbose(env, "BPF_JA uses reserved fields\n");
+					// verbose(env, "BPF_JA uses reserved fields\n");
 					return -EINVAL;
 				}
 
@@ -969,12 +973,12 @@ int do_check(struct bpf_verifier_env *env)
 				    insn->src_reg != BPF_REG_0 ||
 				    insn->dst_reg != BPF_REG_0 ||
 				    class == BPF_JMP32) {
-					verbose(env, "BPF_EXIT uses reserved fields\n");
+					// verbose(env, "BPF_EXIT uses reserved fields\n");
 					return -EINVAL;
 				}
 
 				if (env->cur_state->active_spin_lock) {
-					verbose(env, "bpf_spin_unlock is missing\n");
+					// verbose(env, "bpf_spin_unlock is missing\n");
 					return -EINVAL;
 				}
 
@@ -1017,27 +1021,27 @@ process_bpf_exit:
 				if (err)
 					return err;
 			}
-		} else if (class == BPF_LD) {
-			u8 mode = BPF_MODE(insn->code);
+		// } else if (class == BPF_LD) {
+		// 	u8 mode = BPF_MODE(insn->code);
 
-			if (mode == BPF_ABS || mode == BPF_IND) {
-				err = check_ld_abs(env, insn);
-				if (err)
-					return err;
+		// 	if (mode == BPF_ABS || mode == BPF_IND) {
+		// 		err = check_ld_abs(env, insn);
+		// 		if (err)
+		// 			return err;
 
-			} else if (mode == BPF_IMM) {
-				err = check_ld_imm(env, insn);
-				if (err)
-					return err;
+		// 	} else if (mode == BPF_IMM) {
+		// 		err = check_ld_imm(env, insn);
+		// 		if (err)
+		// 			return err;
 
-				env->insn_idx++;
-				sanitize_mark_insn_seen(env);
-			} else {
-				verbose(env, "invalid BPF_LD mode\n");
-				return -EINVAL;
-			}
+		// 		env->insn_idx++;
+		// 		sanitize_mark_insn_seen(env);
+		// 	} else {
+		// 		// verbose(env, "invalid BPF_LD mode\n");
+		// 		return -EINVAL;
+		// 	}
 		} else {
-			verbose(env, "unknown insn class %d\n", class);
+			// verbose(env, "unknown insn class %d\n", class);
 			return -EINVAL;
 		}
 
