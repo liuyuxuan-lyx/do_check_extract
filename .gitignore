@@ -2,14 +2,20 @@
 .vscode*
 .VSCode*
 
-# obj
+# generated
 *.o
+*.d
+*.bc
+
+# build dir
+build
+
+# klee
+klee-last
+klee-out-*
 
 # temp
 temp*
 tmp*
 *.temp
 *.tmp
-
-# llvm
-*.bc

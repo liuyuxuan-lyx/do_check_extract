@@ -2,11 +2,11 @@
 #define __LOCAL_LINUX_BPF_VERIFIER_H__
 
 
-#include "include/common.h"
+#include "common.h"
 
-#include "include/local/linux/bpf.h"
-#include "include/local/linux/filter.h"
-#include "include/local/linux/tnum.h"
+#include "local/linux/bpf.h"
+#include "local/linux/filter.h"
+#include "local/linux/tnum.h"
 
 /* Maximum variable offset umax_value permitted when resolving memory accesses.
  * In practice this is far bigger than any realistic pointer offset; this limit

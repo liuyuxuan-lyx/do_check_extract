@@ -2,9 +2,9 @@
 #define __LOCAL_LINUX_BPF_H__
 
 
-#include "include/common.h"
+#include "common.h"
 
-#include "include/local/linux/types.h"
+#include "local/linux/types.h"
 
 
 

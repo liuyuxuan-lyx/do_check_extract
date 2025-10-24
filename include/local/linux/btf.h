@@ -1,7 +1,7 @@
 #ifndef __LOCAL_LINUX_BTF_H__
 #define __LOCAL_LINUX_BTF_H__
 
-#include "include/common.h"
+#include "common.h"
 
 struct btf_type {
 	__u32 name_off;

@@ -2,7 +2,7 @@
 #define __LOCAL_LINUX_TYPES_H__
 
 
-#include "include/common.h"
+#include "common.h"
 
 
 #ifdef CONFIG_64BIT

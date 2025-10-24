@@ -1,11 +1,28 @@
-all: do_check_extract.bc klee_main.bc
+SRC_DIR := src
+BUILD_DIR := build
+TARGET := $(BUILD_DIR)/target.bc
 
-do_check_extract.bc:
-	clang -I. -Iinclude -I../klee-workdir/klee/include -emit-llvm -g -c -o do_check_extract.bc do_check_extract.c
+CC := clang-13
+CFLAGS := -Wall -Wextra -g
+CPPFLAGS := -MMD -MP -Iinclude -I../klee-workdir/klee/include
 
-klee_main.bc:
-	clang -I. -Iinclude -I../klee-workdir/klee/include -emit-llvm -g -c -o klee_main.bc klee_main.c
+SRCS := $(shell find $(SRC_DIR) -type f -name '*.c')
+BCS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.bc,$(SRCS))
+DEPS := $(BCS:.bc=.d)
 
-.PHONY: clean
+all: $(TARGET)
+
+$(TARGET): $(BCS)
+	@mkdir -p $(dir $@)
+	llvm-link-13 $(BCS) -o $@
+
+$(BCS): $(BUILD_DIR)/%.bc: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) -emit-llvm -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+
+-include $(DEPS)
+
 clean:
-	rm *.bc *.o
+	rm -rf $(BUILD_DIR)
+
+.PHONY: all clean

@@ -1,9 +1,9 @@
-#include "include/common.h"
+#include "common.h"
 
 
-#include "include/local/linux/errno.h"
+#include "local/linux/errno.h"
 
-#include "include/local/linux/btf.h"
+#include "local/linux/btf.h"
 
 
 /**
@@ -11,28 +11,28 @@
  * defined in linux/tnum.h
  */
 
-#include "include/local/linux/tnum.h"
+#include "local/linux/tnum.h"
 
 /**
  * below
  * defined in linux/filter.h
  */
 
-#include "include/local/linux/filter.h"
+#include "local/linux/filter.h"
 
 /**
  * below
  * defined in linux/bpf.h
  */
 
-#include "include/local/linux/bpf.h"
+#include "local/linux/bpf.h"
 
 /**
  * below
  * defined in linux/bpf_verifier.h
  */
 
-#include "include/local/linux/bpf_verifier.h"
+#include "local/linux/bpf_verifier.h"
 
 
 
